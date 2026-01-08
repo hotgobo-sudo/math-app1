@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>共通テスト数学：最初の1手</title>
+    
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true
+            },
+            options: {
+                ignoreHtmlClass: 'tex2jax_ignore',
+                processHtmlClass: 'tex2jax_process'
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
+    <style>
+        :root { --primary: #007AFF; --bg: #f2f2f7; }
+        body { font-family: "Helvetica Neue", Arial, sans-serif; background: var(--bg); margin: 0; padding: 20px; }
+        .container { max-width: 500px; margin: 0 auto; }
+        .card { background: white; border-radius: 18px; padding: 30px 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); min-height: 250px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; margin-bottom: 20px; }
+        .unit-tag { background: #e5e5ea; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; margin-bottom: 15px; color: #666; }
+        .question { font-size: 1.15rem; font-weight: bold; line-height: 1.6; width: 100%; }
+        .answer { display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee; color: var(--primary); font-weight: bold; width: 100%; }
+        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        button { padding: 16px; border-radius: 12px; border: none; background: var(--primary); color: white; font-size: 1rem; font-weight: bold; cursor: pointer; }
+        select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ccc; margin-bottom: 20px; font-size: 1rem; }
+        #loading { text-align: center; padding: 50px; color: #666; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="loading">データを取得中...<br><small>30秒以上かかる場合はGASの設定を確認してください</small></div>
+    
+    <div id="app" style="display:none;">
+        <select id="catSelect" onchange="changeCat()">
+            <option value="all">全単元ミックス</option>
+        </select>
+
+        <div class="card" onclick="toggleAns()">
+            <div id="uTag" class="unit-tag"></div>
+            <div id="qText" class="question tex2jax_process"></div>
+            <div id="aText" class="answer tex2jax_process"></div>
+            <div id="hint" style="font-size: 0.8rem; color: #999; margin-top: 20px;">タップで答えを確認</div>
+        </div>
+
+        <div class="btn-group">
+            <button style="background: #8e8e93;" onclick="prev()">前へ</button>
+            <button onclick="next()">次へ</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// 【重要】ここに新しいGASのURLを貼り付けてください
+const GAS_URL = "https://script.google.com/macros/s/AKfycbzUyuDCnDOs2d0ZNpEUJA4o-ypEPmj_q36xZT9IaeD1qTAPBp_DGI_Fqy-G0zwPvOWePw/exec";
+
+let masterData = [];
+let items = [];
+let idx = 0;
+
+async function loadData() {
+    try {
+        const res = await fetch(GAS_URL);
+        if (!res.ok) throw new Error('ネットワークエラー');
+        masterData = await res.json();
+        
+        const select = document.getElementById('catSelect');
+        const units = [...new Set(masterData.map(d => d.unit))];
+        units.forEach(u => {
+            const opt = document.createElement('option');
+            opt.value = u;
+            opt.innerText = u;
+            select.appendChild(opt);
+        });
+
+        items = [...masterData];
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+        show();
+    } catch (e) {
+        console.error(e);
+        document.getElementById('loading').innerHTML = "エラーが発生しました。<br>1. GASのデプロイが『全員』になっているか確認<br>2. スプシのヘッダーが unit, question, answer になっているか確認";
+    }
+}
+
+function show() {
+    if (items.length === 0) return;
+    const item = items[idx];
+    document.getElementById('uTag').innerText = item.unit;
+    // 数式の文字化け対策：一度テキストとして入れてからMathJaxを呼ぶ
+    document.getElementById('qText').innerText = item.question;
+    document.getElementById('aText').innerText = item.answer;
+    
+    document.getElementById('aText').style.display = 'none';
+    document.getElementById('hint').style.display = 'block';
+    
+    // MathJaxに数式をレンダリングさせる
+    if (window.MathJax && window.MathJax.typeset) {
+        window.MathJax.typeset();
+    }
+}
+
+function toggleAns() {
+    const a = document.getElementById('aText');
+    const h = document.getElementById('hint');
+    const isHidden = a.style.display === 'none';
+    a.style.display = isHidden ? 'block' : 'none';
+    h.style.display = isHidden ? 'none' : 'block';
+    if (window.MathJax && window.MathJax.typeset) window.MathJax.typeset();
+}
+
+function next() { idx = (idx + 1) % items.length; show(); }
+function prev() { idx = (idx - 1 + items.length) % items.length; show(); }
+function changeCat() {
+    const val = document.getElementById('catSelect').value;
+    items = val === 'all' ? [...masterData] : masterData.filter(d => d.unit === val);
+    idx = 0; show();
+}
+
+window.onload = loadData;
+</script>
+</body>
+</html>
