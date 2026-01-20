@@ -37,15 +37,14 @@
         }
         .card:active { transform: scale(0.98); }
 
-        /* 画像表示エリア共通 */
+        /* 画像表示エリア（初期状態は必ず非表示） */
         .img-container { width: 100%; margin: 15px 0; display: none; }
         .img-container img { max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #eee; }
 
         .unit-tag { background: #e5e5ea; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; margin-bottom: 15px; color: #666; }
         
-        /* 問題文・答えのテキスト（改行を反映させる設定） */
         .question, .answer { 
-            white-space: pre-wrap; /* スプレッドシート内の改行を反映 */
+            white-space: pre-wrap;
             word-wrap: break-word;
         }
         .question { font-size: 1.15rem; font-weight: bold; line-height: 1.6; }
@@ -77,13 +76,13 @@
             <div id="qText" class="question tex2jax_process"></div>
 
             <div id="imageArea" class="img-container">
-                <img id="qImage" src="" alt="問題の図形">
+                <img id="qImage" src="">
             </div>
 
             <div id="aText" class="answer tex2jax_process"></div>
 
             <div id="ansImageArea" class="img-container">
-                <img id="ansImage" src="" alt="答えの解説図">
+                <img id="ansImage" src="">
             </div>
 
             <div id="hint">タップで答えを確認</div>
@@ -135,10 +134,11 @@ function show() {
     document.getElementById('qText').innerHTML = item.question;
     document.getElementById('aText').innerHTML = item.answer;
     
-    // --- 問題画像の表示制御 ---
+    // 1. 問題画像の処理
     const imgArea = document.getElementById('imageArea');
     const qImg = document.getElementById('qImage');
-    if (item.image && item.image.startsWith('http')) {
+    // URLがあり、かつ空文字でない場合のみ表示
+    if (item.image && item.image.trim().startsWith('http')) {
         qImg.src = item.image;
         imgArea.style.display = 'block';
     } else {
@@ -146,18 +146,18 @@ function show() {
         qImg.src = "";
     }
 
-    // --- 答え画像のセット（まだ表示はしない） ---
+    // 2. 答え画像の処理（この時点ではまだ隠しておく）
     const ansImg = document.getElementById('ansImage');
     const ansImgArea = document.getElementById('ansImageArea');
-    if (item.ans_image && item.ans_image.startsWith('http')) {
+    if (item.ans_image && item.ans_image.trim().startsWith('http')) {
         ansImg.src = item.ans_image;
     } else {
         ansImg.src = "";
     }
-
-    // 答えと答えの画像エリアを初期化（隠す）
+    
+    // 全てを「答えを見る前」の状態にリセット
     document.getElementById('aText').style.display = 'none';
-    ansImgArea.style.display = 'none';
+    ansImgArea.style.display = 'none'; 
     document.getElementById('hint').style.display = 'block';
 
     if (window.MathJax) MathJax.typeset();
@@ -172,13 +172,16 @@ function toggleAns() {
     const isHidden = aText.style.display === 'none';
     
     if (isHidden) {
+        // 答えを表示
         aText.style.display = 'block';
         hint.style.display = 'none';
-        // 答えの画像URLが存在する場合のみ表示
-        if (ansImg.src && ansImg.src.startsWith('http')) {
+        
+        // 【重要】srcに有効なURLが入っている場合のみ画像エリアを表示
+        if (ansImg.getAttribute('src') && ansImg.getAttribute('src').startsWith('http')) {
             ansImgArea.style.display = 'block';
         }
     } else {
+        // 答えを隠す
         aText.style.display = 'none';
         hint.style.display = 'block';
         ansImgArea.style.display = 'none';
