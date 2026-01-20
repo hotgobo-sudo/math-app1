@@ -28,7 +28,6 @@
         body { font-family: "Helvetica Neue", Arial, sans-serif; background: var(--bg); margin: 0; padding: 20px; color: #333; }
         .container { max-width: 500px; margin: 0 auto; }
         
-        /* カードのデザイン */
         .card { 
             background: white; border-radius: 18px; padding: 25px 20px; 
             box-shadow: 0 8px 24px rgba(0,0,0,0.1); min-height: 300px; 
@@ -38,18 +37,23 @@
         }
         .card:active { transform: scale(0.98); }
 
-        /* 画像表示エリア */
+        /* 画像表示エリア共通 */
         .img-container { width: 100%; margin: 15px 0; display: none; }
         .img-container img { max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #eee; }
 
         .unit-tag { background: #e5e5ea; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; margin-bottom: 15px; color: #666; }
+        
+        /* 問題文・答えのテキスト（改行を反映させる設定） */
+        .question, .answer { 
+            white-space: pre-wrap; /* スプレッドシート内の改行を反映 */
+            word-wrap: break-word;
+        }
         .question { font-size: 1.15rem; font-weight: bold; line-height: 1.6; }
         .answer { 
             display: none; margin-top: 20px; padding-top: 20px; 
             border-top: 1px solid #eee; color: var(--primary); font-size: 1.1rem; font-weight: bold; 
         }
         
-        /* 操作系 */
         .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         button { padding: 16px; border-radius: 12px; border: none; background: var(--primary); color: white; font-size: 1rem; font-weight: bold; cursor: pointer; }
         select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ccc; margin-bottom: 20px; font-size: 1rem; background: white; }
@@ -77,9 +81,11 @@
             </div>
 
             <div id="aText" class="answer tex2jax_process"></div>
-            <div id="ansImageArea" class="img-container" style="display: none;">
-            <img id="ansImage" src="" alt="答えの図形・解説">
+
+            <div id="ansImageArea" class="img-container">
+                <img id="ansImage" src="" alt="答えの解説図">
             </div>
+
             <div id="hint">タップで答えを確認</div>
         </div>
 
@@ -103,7 +109,6 @@ async function loadData() {
         const res = await fetch(GAS_URL);
         masterData = await res.json();
         
-        // セレクトボックスの生成
         const select = document.getElementById('catSelect');
         const units = [...new Set(masterData.map(d => d.unit))];
         units.forEach(u => {
@@ -130,7 +135,7 @@ function show() {
     document.getElementById('qText').innerHTML = item.question;
     document.getElementById('aText').innerHTML = item.answer;
     
-    // 画像の制御
+    // --- 問題画像の表示制御 ---
     const imgArea = document.getElementById('imageArea');
     const qImg = document.getElementById('qImage');
     if (item.image && item.image.startsWith('http')) {
@@ -140,39 +145,43 @@ function show() {
         imgArea.style.display = 'none';
         qImg.src = "";
     }
-    
-    const ansImgArea = document.getElementById('ansImageArea');
+
+    // --- 答え画像のセット（まだ表示はしない） ---
     const ansImg = document.getElementById('ansImage');
-    
+    const ansImgArea = document.getElementById('ansImageArea');
     if (item.ans_image && item.ans_image.startsWith('http')) {
         ansImg.src = item.ans_image;
     } else {
         ansImg.src = "";
     }
-    // 初期状態では答えの画像エリアは隠しておく
-    ansImgArea.style.display = 'none';
 
+    // 答えと答えの画像エリアを初期化（隠す）
     document.getElementById('aText').style.display = 'none';
+    ansImgArea.style.display = 'none';
     document.getElementById('hint').style.display = 'block';
 
-    // 数式の再レンダリング
     if (window.MathJax) MathJax.typeset();
 }
 
 function toggleAns() {
-    const a = document.getElementById('aText');
-    const h = document.getElementById('hint');
-    const ai = document.getElementById('ansImageArea'); // 答えの画像エリアを取得
+    const aText = document.getElementById('aText');
+    const hint = document.getElementById('hint');
+    const ansImgArea = document.getElementById('ansImageArea');
+    const ansImg = document.getElementById('ansImage');
     
-    const isHidden = a.style.display === 'none';
-    a.style.display = isHidden ? 'block' : 'none';
-    h.style.display = isHidden ? 'none' : 'block';
-
-    // ▼答えの画像があれば、テキストと一緒に表示/非表示を切り替える
-    if (document.getElementById('ansImage').src.startsWith('http')) {
-        ai.style.display = isHidden ? 'block' : 'none';
+    const isHidden = aText.style.display === 'none';
+    
+    if (isHidden) {
+        aText.style.display = 'block';
+        hint.style.display = 'none';
+        // 答えの画像URLが存在する場合のみ表示
+        if (ansImg.src && ansImg.src.startsWith('http')) {
+            ansImgArea.style.display = 'block';
+        }
     } else {
-        ai.style.display = 'none';
+        aText.style.display = 'none';
+        hint.style.display = 'block';
+        ansImgArea.style.display = 'none';
     }
 }
 
