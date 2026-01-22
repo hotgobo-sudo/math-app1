@@ -1,0 +1,16 @@
+{
+  "name": "共通テスト数学：最初の1手",
+  "short_name": "数：1手",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#f2f2f7",
+  "theme_color": "#007AFF",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
